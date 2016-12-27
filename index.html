@@ -4,8 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport"
 	content="width=device-width,height=device-height,user-scalable=no">
-<meta name="description"
-	content="Tampere Bus Stop Monitor" />
+<meta name="description" content="Tampere Bus Stop Monitor" />
 
 <title>Tampere Bus Stop Monitor</title>
 
@@ -25,11 +24,15 @@ var secret = {
 
 <body>
 	<div id="page">
-		<span id="stopname">Ladataan...</span>
-		<span id="distance"></span><span>m</span>
-		<div id="departs"></div>
-		<div id="stops">
+		<div id="header">
+			<span id="distance"></span> <span id="stopname">Paikannetaan...</span>
 		</div>
+		
+		<div class="content">
+			<table id="departs"></table>
+		</div>
+
+		<div id="stops"></div>
 	</div>
 </body>
 </html>
