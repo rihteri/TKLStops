@@ -13,6 +13,16 @@ var classNames = [ "topleft", "toptopleft", "top", "toptopright", "topright",
 var stopData = {};
 var stops = [];
 var currIx = 0;
+var gpsWatchHandle = 0;
+var oldPos = null;
+
+function showStatusMessage(message) {
+	var departs = document.getElementById("departs");
+	clear(departs);
+	var loading = document.createElement('tr');
+	loading.appendChild(document.createTextNode(message));
+	departs.appendChild(loading);
+}
 
 function makeStopSelector(ix, stopData) {
 	var className = classNames[ix];
@@ -179,11 +189,7 @@ function getStopInfo(code) {
 
 	if (curStopData === undefined
 			|| (now - curStopData.timestamp) > 5 * 60 * 1000) {
-		var departs = document.getElementById("departs");
-		clear(departs);
-		var loading = document.createElement('tr');
-		loading.appendChild(document.createTextNode('Ladataan...'));
-		departs.appendChild(loading);
+		showStatusMessage("Ladataan...");
 
 		doRequest("stop", {
 			"code" : code
@@ -207,6 +213,23 @@ function getStopInfo(code) {
 }
 
 function onStopsLoaded(data) {
+	if (stops.length > 0) {
+		var curStopCode = stops[currIx].code;
+		
+		var found = false;
+		for (var i in data) {
+			if (data[i].code == curStopCode) {
+				currIx = i;
+				found = true;
+				break;
+			}
+		}
+		
+		if (!found) {
+			currIx = 0;
+		}
+	}
+	
 	stops = data;
 
 	drawStops();
@@ -218,49 +241,100 @@ function doRedraw() {
 	if (curStop) {
 		getStopInfo(curStop.code);
 	}
-	
-	window.setTimeout(doRedraw, 30*1000);
+
+	window.setTimeout(doRedraw, 30 * 1000);
 }
 
-window.onload = function() {
-	document.addEventListener('rotarydetent', rotaryHandler, false);
+function onLocationError(err) {
+	console.log("location error: " + err.code);
 
-	navigator.geolocation.getCurrentPosition(function(pos) {
-		var opts = {
+	if (stops.length === 0) {
+		showStatusMessage("Paikannus ei onnistunut, yritetään uudelleen.");
+	}
+	
+	gpsWatchHandle = navigator.geolocation.watchPosition(onPosition,
+			onLocationError, gpsOpts);
+}
+
+function onVisibilityChange() {
+	if (document.hidden) {
+		console.log("hiding");
+		navigator.geolocation.clearWatch(gpsWatchHandle);
+		window.clearTimeout();
+	} else {
+		console.log("showing");
+		startVisibleActions();
+	}
+}
+
+function onHwKey(e) {
+	if (e.keyName === "back") {
+		tizen.application.getCurrentApplication().hide();
+	}
+}
+
+function toRadian(angle) {
+	return Math.PI * angle / 180.0;
+}
+
+function distance(pos1, pos2) {
+	var D = 12720.0;
+
+	var dLat = toRadian(pos1.coords.latitude - pos2.coords.latitude);
+	var dLon = toRadian(pos1.coords.longitude - pos2.coords.longitude);
+
+	var sinLat = Math.sin(dLat / 2);
+	var sinLon = Math.sin(dLon / 2);
+
+	var coses = Math.cos(toRadian(pos1.coords.latitude))
+			+ Math.cos(toRadian(pos2.coords.latitude));
+
+	var sq = sinLat * sinLat + coses * sinLon * sinLon;
+
+	return D * Math.asin(Math.sqrt(sq));
+}
+
+function onPosition(pos) {
+	console.log("got position " + pos.coords.latitude + ", " + pos.coords.longitude);
+	var opts = {
 			"center_coordinate" : pos.coords.longitude.toString() + ","
 					+ pos.coords.latitude.toString(),
 			"epsg_in" : "wgs84",
 			"limit" : classNames.length.toString()
 		};
-
+	
+	if (!oldPos) {
 		doRequest("stops_area", opts, onStopsLoaded);
-	}, function(err) {
-		console.log("location error: " + err.code);
-	}, {
+		oldPos = pos;
+	}
+	else {
+		var dist = distance(pos, oldPos);
+		console.log("distance from previous: " + dist + " km");
+		
+		if (dist > 0.3) {
+			doRequest("stops_area", opts, onStopsLoaded);
+			oldPos = pos;
+		}
+	}
+}
+
+var gpsOpts = {
 		"enableHighAccuracy" : true,
 		"maximumAge" : 600000,
 		"timeout" : 60000
-	});
-	
+	};
+
+function startVisibleActions() {
+	gpsWatchHandle = navigator.geolocation.watchPosition(onPosition,
+			onLocationError, gpsOpts);
+
 	doRedraw();
-	
-	document.addEventListener('visibilitychange', function() {
-		if (document.hidden) {
-			console.log("hiding");
-			window.clearTimeout();
-		}
-		else {
-			console.log("showing");
-			doRedraw();
-		}
-	}, false);
-	
-	document.addEventListener('tizenhwkey', function(e) {
-				if (e.keyName === "back") {
-					try {
-						tizen.application.getCurrentApplication().hide();
-					} catch (ignore) {
-					}
-				}
-		});
+}
+
+window.onload = function() {
+	document.addEventListener('rotarydetent', rotaryHandler, false);
+	document.addEventListener('visibilitychange', onVisibilityChange, false);
+	document.addEventListener('tizenhwkey', onHwKey);
+
+	startVisibleActions();
 };
