@@ -42,9 +42,7 @@ function makeStopSelector(ix, stopData) {
 
 }
 
-function doRequest(request, params, onready) {
-	console.log("Requesting " + request);
-
+function doRequest(url, onready) {
 	var xhr = new XMLHttpRequest();
 	xhr.onreadystatechange = function() {
 
@@ -61,6 +59,16 @@ function doRequest(request, params, onready) {
 		writeDebug(xhr.statusText);
 	};
 
+	console.log(url);
+
+	xhr.open("GET", url);
+
+	xhr.send();
+}
+
+function doTklRequest(request, params, onready) {
+	console.log("Requesting " + request);
+
 	var parString = "";
 	for ( var p in params) {
 		parString += "&" + p + "=" + params[p];
@@ -70,11 +78,14 @@ function doRequest(request, params, onready) {
 			+ "&format=json" + "&user=" + secret.user + "&pass=" + secret.pass
 			+ parString;
 
-	console.log(url);
+	doRequest(url, onready);
+}
 
-	xhr.open("GET", url);
+function doStopRequest(stop, onready) {
+	console.log("Requesting stop " + stop);
 
-	xhr.send();
+	doRequest("http://data.itsfactory.fi/journeys/api/1/stop-monitoring?stops="
+			+ stop, onready);
 }
 
 function rotaryHandler(ev) {
@@ -175,14 +186,18 @@ function redrawDepartures(departures) {
 	}
 }
 
+function updateDistance() {
+	var dist = document.getElementById("distance");
+	clear(dist);
+	dist.appendChild(document.createTextNode(stops[currIx].dist + " m"));
+}
+
 function getStopInfo(code) {
 	var sn = document.getElementById("stopname");
 	clear(sn);
 	sn.appendChild(document.createTextNode(stops[currIx].name));
 
-	var dist = document.getElementById("distance");
-	clear(dist);
-	dist.appendChild(document.createTextNode(stops[currIx].dist + " m"));
+	updateDistance();
 
 	var curStopData = stopData[code];
 	var now = new Date().getTime();
@@ -191,17 +206,16 @@ function getStopInfo(code) {
 			|| (now - curStopData.timestamp) > 5 * 60 * 1000) {
 		showStatusMessage("Ladataan...");
 
-		doRequest("stop", {
+		doTklRequest("stop", {
 			"code" : code
 		}, function(data) {
 			var departures = groupDepartures(data[0].departures);
 
-			var stopCode = data[0].code;
-			stopData[stopCode] = {};
-			stopData[stopCode].departures = departures;
-			stopData[stopCode].timestamp = now;
+			stopData[code] = {};
+			stopData[code].departures = departures;
+			stopData[code].timestamp = now;
 
-			if (stops[currIx].code === stopCode) {
+			if (stops[currIx].code === code) {
 				redrawDepartures(departures);
 			}
 		});
@@ -215,21 +229,21 @@ function getStopInfo(code) {
 function onStopsLoaded(data) {
 	if (stops.length > 0) {
 		var curStopCode = stops[currIx].code;
-		
+
 		var found = false;
-		for (var i in data) {
+		for ( var i in data) {
 			if (data[i].code == curStopCode) {
 				currIx = i;
 				found = true;
 				break;
 			}
 		}
-		
+
 		if (!found) {
 			currIx = 0;
 		}
 	}
-	
+
 	stops = data;
 
 	drawStops();
@@ -251,7 +265,7 @@ function onLocationError(err) {
 	if (stops.length === 0) {
 		showStatusMessage("Paikannus ei onnistunut, yritetään uudelleen.");
 	}
-	
+
 	gpsWatchHandle = navigator.geolocation.watchPosition(onPosition,
 			onLocationError, gpsOpts);
 }
@@ -295,34 +309,34 @@ function distance(pos1, pos2) {
 }
 
 function onPosition(pos) {
-	console.log("got position " + pos.coords.latitude + ", " + pos.coords.longitude);
+	console.log("got position " + pos.coords.latitude + ", "
+			+ pos.coords.longitude);
 	var opts = {
-			"center_coordinate" : pos.coords.longitude.toString() + ","
-					+ pos.coords.latitude.toString(),
-			"epsg_in" : "wgs84",
-			"limit" : classNames.length.toString()
-		};
-	
+		"center_coordinate" : pos.coords.longitude.toString() + ","
+				+ pos.coords.latitude.toString(),
+		"epsg_in" : "wgs84",
+		"limit" : classNames.length.toString()
+	};
+
 	if (!oldPos) {
-		doRequest("stops_area", opts, onStopsLoaded);
+		doTklRequest("stops_area", opts, onStopsLoaded);
 		oldPos = pos;
-	}
-	else {
+	} else {
 		var dist = distance(pos, oldPos);
 		console.log("distance from previous: " + dist + " km");
-		
+
 		if (dist > 0.3) {
-			doRequest("stops_area", opts, onStopsLoaded);
+			doTklRequest("stops_area", opts, onStopsLoaded);
 			oldPos = pos;
 		}
 	}
 }
 
 var gpsOpts = {
-		"enableHighAccuracy" : true,
-		"maximumAge" : 600000,
-		"timeout" : 60000
-	};
+	"enableHighAccuracy" : true,
+	"maximumAge" : 600000,
+	"timeout" : 60000
+};
 
 function startVisibleActions() {
 	gpsWatchHandle = navigator.geolocation.watchPosition(onPosition,
