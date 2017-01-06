@@ -158,7 +158,7 @@ function redrawDepartures(departures) {
 		lineName.classList.add("line-name");
 		lineName.appendChild(document.createTextNode(departures[code].name));
 		linedata.appendChild(lineName);
-		container.appendChild(linedata)
+		container.appendChild(linedata);
 
 		var timesrow = document.createElement("tr");
 		var times = document.createElement("td");
@@ -193,6 +193,11 @@ function updateDistance() {
 }
 
 function getStopInfo(code) {
+	var splash = document.getElementById("splash");
+	if (splash) {
+		splash.parentNode.removeChild(splash);
+	}
+	
 	var sn = document.getElementById("stopname");
 	clear(sn);
 	sn.appendChild(document.createTextNode(stops[currIx].name));

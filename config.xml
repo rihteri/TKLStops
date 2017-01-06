@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="http://yourdomain/TKLStops" version="1.0.0" viewmodes="maximized">
+<widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="http://vincit.fi/Viisari" version="1.0.0" viewmodes="maximized">
     <access origin="http://api.publictransport.tampere.fi" subdomains="true"></access>
     <tizen:allow-navigation>api.publictransport.tampere.fi</tizen:allow-navigation>
     <tizen:application id="mwTYKIyQRj.TKLStops" package="mwTYKIyQRj" required_version="2.3.2"/>
+    <author href="http://www.vincit.fi">Vincit Oyj</author>
     <content src="index.html"/>
+    <description>A simple app to monitor the next bus departures of the nearest bust stops. If you happen to be in Tampere, Finland.</description>
     <feature name="http://tizen.org/feature/screen.size.all"/>
     <icon src="icon.png"/>
-    <name>TKLStops</name>
+    <license>BSD</license>
+    <name>Viisari</name>
     <tizen:privilege name="http://tizen.org/privilege/location"/>
     <tizen:privilege name="http://tizen.org/privilege/internet"/>
     <tizen:profile name="wearable"/>

@@ -43,7 +43,7 @@ html, body {
 	top: 50%;
 	left: 50%;
 	font-size: 25px;
-	color: #fefe99;
+	color: white;
 	padding-top: 20px;
 	padding: 3px;
 	background-color: black;
@@ -112,15 +112,24 @@ html, body {
 	padding-right: 5px;
 	padding-top: 2px;
 	padding-bottom: 2px;
-	background-color: blue;
+	background-color: #159bed;
 	font-weight: bold;
-}
-
-tr {
-	vertical-align: left;
 }
 
 .time {
 	padding-left: 15px;
 	float: left;
+}
+
+#splash {
+	height: 100%;
+	position: relative;
+	width: 100%;
+	top: 0px;
+	left: 0px;
+	text-align: center;
+}
+
+#splash img {
+	width: 90%;
 }
